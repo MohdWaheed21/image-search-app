@@ -1,101 +1,186 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Image Search App</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Finder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Image Search App</h1>
+    <div class="container">
+        <header>
+            <h1>Image<span class="glow">Finder</span></h1>
+            <p>Upload images and search them with natural language</p>
+            <button id="themeToggle">🌓</button>
+        </header>
 
-    <section id="upload-section">
-        <h2>Upload Image</h2>
-        <form id="uploadForm" enctype="multipart/form-data">
-            <input type="file" name="image" accept="image/*" required />
-            <button type="submit">Upload</button>
-        </form>
-        <p id="uploadStatus"></p>
-    </section>
+        <div class="upload-box" id="dropZone">
+            <svg class="upload-icon" viewBox="0 0 24 24">
+                <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+            </svg>
+            <p>Drag & drop images here or click to select</p>
+            <input type="file" id="fileInput" accept="image/*" multiple>
+            <div id="uploadStatus"></div>
+        </div>
 
-    <section id="search-section">
-        <h2>Search Images</h2>
-        <input type="text" id="searchInput" placeholder="Search description..." />
-        <button id="searchButton">Search</button>
-    </section>
-
-    <section id="results-section">
-        <h2>Results</h2>
-        <div id="results"></div>
-    </section>
+        <div class="search-container">
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search for 'cat', 'beach sunset'...">
+                <button id="searchButton">🔍 Search</button>
+            </div>
+            <div id="searchResults" class="results-grid"></div>
+        </div>
+    </div>
 
     <script>
-        const uploadForm = document.getElementById('uploadForm');
+        // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
         const uploadStatus = document.getElementById('uploadStatus');
         const searchInput = document.getElementById('searchInput');
         const searchButton = document.getElementById('searchButton');
-        const resultsDiv = document.getElementById('results');
+        const searchResults = document.getElementById('searchResults');
+        const themeToggle = document.getElementById('themeToggle');
 
-        uploadForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            uploadStatus.textContent = "Uploading...";
+        // Theme Toggle
+        themeToggle.addEventListener('click', () => {
+            const html = document.documentElement;
+            const isDark = html.getAttribute('data-theme') === 'dark';
+            html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        });
 
-            const formData = new FormData(uploadForm);
-            try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData,
-                });
-                const data = await response.json();
+        // Set initial theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
 
-                if (response.ok) {
-                    uploadStatus.textContent = `Uploaded: ${data.filename}`;
-                    // Clear search and results on new upload
-                    searchInput.value = '';
-                    resultsDiv.innerHTML = '';
-                } else {
-                    uploadStatus.textContent = `Error: ${data.error}`;
-                }
-            } catch (error) {
-                uploadStatus.textContent = `Upload failed: ${error.message}`;
+        // File Upload Handling
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', (e) => {
+            console.log('Files selected:', e.target.files);
+            if (e.target.files && e.target.files.length > 0) {
+                handleFiles(e.target.files);
             }
         });
 
-        searchButton.addEventListener('click', async () => {
-            const query = searchInput.value.trim();
-            resultsDiv.innerHTML = "Searching...";
+        // Drag and Drop
+        ['dragover', 'dragleave', 'drop'].forEach(event => {
+            dropZone.addEventListener(event, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.style.background = event === 'dragover' 
+                    ? 'rgba(110, 72, 170, 0.2)' 
+                    : '';
+            });
+        });
 
-            if (!query) {
-                resultsDiv.innerHTML = "Please enter a search term.";
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            console.log('Files dropped:', files);
+            handleFiles(files);
+        });
+
+        async function handleFiles(files) {
+            if (!files || files.length === 0) {
+                uploadStatus.innerHTML = '❌ No files selected';
                 return;
             }
+            
+            uploadStatus.innerHTML = '<span class="loading"></span> Processing files...';
+            dropZone.style.opacity = '0.7';
+            
+            const formData = new FormData();
+            let validFiles = 0;
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.type.match('image.*')) {
+                    formData.append('images', file);
+                    validFiles++;
+                }
+            }
+            
+            if (validFiles === 0) {
+                uploadStatus.innerHTML = '❌ No valid image files selected';
+                dropZone.style.opacity = '1';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (validFiles === 1) {
+                        uploadStatus.innerHTML = `✅ ${data.filename} uploaded successfully!`;
+                    } else {
+                        uploadStatus.innerHTML = `✅ ${validFiles} files uploaded successfully!`;
+                    }
+                    fileInput.value = '';
+                    setTimeout(() => {
+                        uploadStatus.innerHTML = '';
+                    }, 3000);
+                } else {
+                    uploadStatus.innerHTML = `❌ Error: ${data.error || 'Upload failed'}`;
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                uploadStatus.innerHTML = '❌ Network error. Please try again.';
+            } finally {
+                dropZone.style.opacity = '1';
+            }
+        }
 
+        // Search Functionality
+        searchButton.addEventListener('click', performSearch);
+        searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        async function performSearch() {
+            const query = searchInput.value.trim();
+            if (!query) {
+                searchResults.innerHTML = '<div class="no-results">Please enter a search term</div>';
+                return;
+            }
+            
+            searchResults.innerHTML = '<div class="loading-message">Searching...</div>';
+            
             try {
                 const response = await fetch('/search', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({query}),
+                    body: JSON.stringify({query})
                 });
-
+                
                 const data = await response.json();
-
-                if (data.results.length === 0) {
-                    resultsDiv.innerHTML = "No images found.";
-                } else {
-                    resultsDiv.innerHTML = '';
-                    data.results.forEach(({filename, url}) => {
-                        const img = document.createElement('img');
-                        img.src = url;
-                        img.alt = filename;
-                        img.title = filename;
-                        img.classList.add('result-image');
-                        resultsDiv.appendChild(img);
-                    });
+                
+                if (data.error) {
+                    searchResults.innerHTML = `<div class="error-message">${data.error}</div>`;
+                    return;
                 }
+                
+                if (data.results.length === 0) {
+                    searchResults.innerHTML = '<div class="no-results">No images found. Try a different search term.</div>';
+                    return;
+                }
+                
+                searchResults.innerHTML = data.results.map(img => `
+                    <div class="image-card">
+                        <img src="${img.url}" alt="${img.filename}">
+                        <div class="image-desc">${img.filename}</div>
+                    </div>
+                `).join('');
             } catch (error) {
-                resultsDiv.innerHTML = `Search failed: ${error.message}`;
+                console.error('Search error:', error);
+                searchResults.innerHTML = '<div class="error-message">Search failed. Please try again.</div>';
             }
-        });
+        }
     </script>
 </body>
 </html>

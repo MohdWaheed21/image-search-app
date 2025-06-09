@@ -71,28 +71,42 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_image():
-    if 'image' not in request.files:
+    if 'images' not in request.files:
         return jsonify({"error": "No file part"}), 400
 
-    file = request.files['image']
-    if file.filename == '':
+    files = request.files.getlist('images')
+    if not files or files[0].filename == '':
         return jsonify({"error": "No selected file"}), 400
 
-    filename = file.filename
-    save_path = os.path.join(UPLOAD_FOLDER, filename)
+    responses = []
+    for file in files:
+        # Skip if empty file (can happen with some browsers)
+        if file.filename == '':
+            continue
+            
+        filename = file.filename
+        # Secure filename to prevent directory traversal
+        filename = os.path.basename(filename)
+        save_path = os.path.join(UPLOAD_FOLDER, filename)
 
-    # Save uploaded file
-    file.save(save_path)
+        # Save uploaded file
+        file.save(save_path)
 
-    # Get description from llama-server
-    description = get_image_description(save_path)
+        # Get description from llama-server
+        description = get_image_description(save_path)
 
-    # Save/update embeddings dictionary
-    global embeddings
-    embeddings[filename] = description
+        # Save/update embeddings dictionary
+        global embeddings
+        embeddings[filename] = description
+        responses.append({"filename": filename, "description": description})
+
     save_embeddings()
 
-    return jsonify({"filename": filename, "description": description})
+    if len(responses) == 0:
+        return jsonify({"error": "No valid images were uploaded"}), 400
+    elif len(responses) == 1:
+        return jsonify(responses[0])
+    return jsonify({"filename": f"{len(responses)} files uploaded", "description": "Multiple files processed"})
 
 @app.route('/search', methods=['POST'])
 def search_images():
