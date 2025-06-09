@@ -1,0 +1,64 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 2em auto;
+    padding: 0 1em;
+    background-color: #fafafa;
+    color: #333;
+}
+
+h1, h2 {
+    text-align: center;
+    color: #222;
+}
+
+#upload-section, #search-section, #results-section {
+    margin-bottom: 2em;
+    background: white;
+    padding: 1em;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.1);
+}
+
+input[type="file"], input[type="text"] {
+    width: 100%;
+    padding: 0.5em;
+    font-size: 1em;
+    margin-bottom: 1em;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+button {
+    padding: 0.6em 1.2em;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#results {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.result-image {
+    max-width: 150px;
+    max-height: 150px;
+    border-radius: 6px;
+    object-fit: cover;
+    cursor: pointer;
+    box-shadow: 0 0 6px rgb(0 0 0 / 0.15);
+    transition: transform 0.15s ease-in-out;
+}
+
+.result-image:hover {
+    transform: scale(1.1);
+}
