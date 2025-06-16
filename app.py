@@ -2,6 +2,8 @@ import os
 import json
 import requests
 from flask import Flask, render_template, request, jsonify, url_for
+from sentence_transformers import SentenceTransformer, util
+import torch  # noqa: F401
 
 app = Flask(__name__)
 
@@ -11,13 +13,15 @@ EMBEDDINGS_FILE = 'embeddings.json'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+# Load Sentence Transformer model
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
 # Load existing embeddings or create empty dict
 def load_embeddings():
     if os.path.exists(EMBEDDINGS_FILE):
         with open(EMBEDDINGS_FILE, 'r') as f:
             try:
                 data = json.load(f)
-                # Ensure it is a dict, else reset
                 if isinstance(data, dict):
                     return data
                 else:
@@ -80,22 +84,15 @@ def upload_image():
 
     responses = []
     for file in files:
-        # Skip if empty file (can happen with some browsers)
         if file.filename == '':
             continue
             
-        filename = file.filename
-        # Secure filename to prevent directory traversal
-        filename = os.path.basename(filename)
+        filename = os.path.basename(file.filename)
         save_path = os.path.join(UPLOAD_FOLDER, filename)
-
-        # Save uploaded file
         file.save(save_path)
 
-        # Get description from llama-server
         description = get_image_description(save_path)
 
-        # Save/update embeddings dictionary
         global embeddings
         embeddings[filename] = description
         responses.append({"filename": filename, "description": description})
@@ -111,18 +108,35 @@ def upload_image():
 @app.route('/search', methods=['POST'])
 def search_images():
     data = request.json
-    query = data.get('query', '').lower()
+    query = data.get('query', '').strip()
 
     if not query:
         return jsonify({"results": []})
 
+    # Encode the query
+    query_embedding = model.encode(query, convert_to_tensor=True)
+
     results = []
     for filename, desc in embeddings.items():
-        if query in desc.lower():
+        # Skip if description is empty
+        if not desc or desc == "No description available":
+            continue
+            
+        # Encode the stored description
+        desc_embedding = model.encode(desc, convert_to_tensor=True)
+        
+        # Calculate cosine similarity
+        similarity = util.pytorch_cos_sim(query_embedding, desc_embedding).item()
+        
+        if similarity > 0.5:  # Adjust threshold as needed
             results.append({
                 "filename": filename,
-                "url": url_for('static', filename=f'uploads/{filename}')
+                "url": url_for('static', filename=f'uploads/{filename}'),
+                "score": similarity
             })
+
+    # Sort by similarity score (highest first)
+    results.sort(key=lambda x: x["score"], reverse=True)
 
     return jsonify({"results": results})
 

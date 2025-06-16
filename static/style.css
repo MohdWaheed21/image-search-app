@@ -7,6 +7,8 @@
     --text-dark: #333333;
     --card-bg-dark: #1e1e1e;
     --card-bg-light: #ffffff;
+    --success: #4caf50;
+    --error: #f44336;
 }
 
 [data-theme="dark"] {
@@ -33,6 +35,7 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem;
+    min-height: 100vh;
 }
 
 /* Header styles */
@@ -154,11 +157,27 @@ h1 {
     display: block;
 }
 
-.image-desc {
+.image-info {
     padding: 0.8rem;
+}
+
+.filename {
     font-size: 0.9rem;
     color: var(--text);
-    word-break: break-all;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.similarity-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+    float: right;
 }
 
 /* Theme toggle */
@@ -171,9 +190,14 @@ h1 {
     top: 1rem;
     right: 1rem;
     color: var(--text);
+    transition: transform 0.3s;
 }
 
-/* Loading state */
+#themeToggle:hover {
+    transform: rotate(30deg);
+}
+
+/* Status messages */
 .loading {
     display: inline-block;
     width: 20px;
@@ -192,6 +216,14 @@ h1 {
     color: var(--text);
 }
 
+.error-message {
+    color: var(--error);
+}
+
+.success-message {
+    color: var(--success);
+}
+
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
@@ -204,5 +236,9 @@ h1 {
     
     .results-grid {
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+    
+    h1 {
+        font-size: 2rem;
     }
 }

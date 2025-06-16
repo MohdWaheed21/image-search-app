@@ -58,7 +58,6 @@
         dropZone.addEventListener('click', () => fileInput.click());
         
         fileInput.addEventListener('change', (e) => {
-            console.log('Files selected:', e.target.files);
             if (e.target.files && e.target.files.length > 0) {
                 handleFiles(e.target.files);
             }
@@ -77,7 +76,6 @@
 
         dropZone.addEventListener('drop', (e) => {
             const files = e.dataTransfer.files;
-            console.log('Files dropped:', files);
             handleFiles(files);
         });
 
@@ -149,7 +147,7 @@
                 return;
             }
             
-            searchResults.innerHTML = '<div class="loading-message">Searching...</div>';
+            searchResults.innerHTML = '<div class="loading-message"><span class="loading"></span> Searching...</div>';
             
             try {
                 const response = await fetch('/search', {
@@ -166,14 +164,17 @@
                 }
                 
                 if (data.results.length === 0) {
-                    searchResults.innerHTML = '<div class="no-results">No images found. Try a different search term.</div>';
+                    searchResults.innerHTML = '<div class="no-results">No matching images found. Try a different search term.</div>';
                     return;
                 }
                 
                 searchResults.innerHTML = data.results.map(img => `
                     <div class="image-card">
-                        <img src="${img.url}" alt="${img.filename}">
-                        <div class="image-desc">${img.filename}</div>
+                        <img src="${img.url}" alt="${img.filename}" loading="lazy">
+                        <div class="image-info">
+                            <div class="filename">${img.filename}</div>
+                            <div class="similarity-badge">${Math.round(img.score * 100)}% match</div>
+                        </div>
                     </div>
                 `).join('');
             } catch (error) {
