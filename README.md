@@ -56,7 +56,19 @@ pip install -r requirements.txt
 
 ### 🧠 Download Models
 
+### Install llama-cpp
+
+Winget (Windows)
+```bash
+winget install llama.cpp
+```
+Homebrew (Mac and Linux)
+```bash
+brew install llama.cpp
+```
+
 #### SmolVLM for image captions:
+
 ```bash
 llama-server -hf ggml-org/SmolVLM-500M-Instruct-GGUF
 ```
