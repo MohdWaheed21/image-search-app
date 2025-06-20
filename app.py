@@ -14,7 +14,9 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 # Load Sentence Transformer model
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# Load Sentence Transformer model from local path
+model = SentenceTransformer('./models/all-MiniLM-L6-v2')
+
 
 # Load existing embeddings or create empty dict
 def load_embeddings():
